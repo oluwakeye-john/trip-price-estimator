@@ -1,4 +1,4 @@
-package services
+package trip
 
 import (
 	"math"
@@ -6,10 +6,14 @@ import (
 	"github.com/oluwakeye-john/trip-price-estimator/config"
 )
 
+var RegularTrip string = "REGULAR"
+var PremiumTrip string = "PREMIUM"
+
 type Trip struct {
 	Distance float64
 	Duration float64
 	Settings config.Settings
+	Type     string
 }
 
 func (t *Trip) ComputeTripFee() float64 {
