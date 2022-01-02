@@ -20,7 +20,10 @@ type ReverseGeocoding struct {
 }
 
 type TripEstimate struct {
-	Price    float64 `json:"price"`
+	// Estimated price of trip in Naira
+	Price float64 `json:"price"`
+	// Trip distance in Km
 	Distance float64 `json:"distance"`
+	// Trip duration in seconds
 	Duration float64 `json:"duration"`
 }

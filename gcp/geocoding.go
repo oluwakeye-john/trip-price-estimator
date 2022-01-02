@@ -25,7 +25,9 @@ func GeocodingRequest(address string) (GeocodingResult, error) {
 
 	geocoding_result := GeocodingResult{}
 
-	r, err := newMapRequest("/maps/api/geocode/json", params)
+	map_client := NewMapClient()
+
+	r, err := map_client.Request("/maps/api/geocode/json", params)
 
 	if err != nil {
 		return geocoding_result, err

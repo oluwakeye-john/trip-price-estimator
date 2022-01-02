@@ -8,20 +8,23 @@ import (
 	"github.com/oluwakeye-john/trip-price-estimator/config"
 )
 
-func request(host string, path string, params url.Values) (*http.Response, error) {
+type MapClient struct {
+}
+
+func NewMapClient() MapClient {
+	return MapClient{}
+}
+
+func (m *MapClient) Request(path string, params url.Values) (*http.Response, error) {
 	GCP_API_KEY := config.MustGetEnv("GCP_API_KEY")
 	params.Add("key", GCP_API_KEY)
 
 	fmt_url := url.URL{
 		Scheme:   "https",
-		Host:     host,
+		Host:     "maps.googleapis.com",
 		Path:     path,
 		RawQuery: params.Encode(),
 	}
-	log.Println("URL: ", fmt_url.String())
+	log.Println("Request URL: ", fmt_url.String())
 	return http.Get(fmt_url.String())
-}
-
-func newMapRequest(path string, params url.Values) (*http.Response, error) {
-	return request("maps.googleapis.com", path, params)
 }

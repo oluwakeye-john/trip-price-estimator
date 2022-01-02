@@ -20,7 +20,9 @@ func ReverseGeocodingRequest(lat float64, lng float64) (ReverseGeocodingResult, 
 
 	reverse_geocoding_result := ReverseGeocodingResult{}
 
-	r, err := newMapRequest("/maps/api/geocode/json", params)
+	map_client := NewMapClient()
+
+	r, err := map_client.Request("/maps/api/geocode/json", params)
 
 	if err != nil {
 		return reverse_geocoding_result, err

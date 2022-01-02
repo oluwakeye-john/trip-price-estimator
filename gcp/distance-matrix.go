@@ -30,7 +30,9 @@ func DistanceMatrixRequest(origins string, destinations string) (DistanceMatrixR
 	params.Add("origins", origins)
 	params.Add("destinations", destinations)
 
-	r, err := newMapRequest("/maps/api/distancematrix/json", params)
+	map_client := MapClient{}
+
+	r, err := map_client.Request("/maps/api/distancematrix/json", params)
 
 	distance_matrix_result := DistanceMatrixResult{}
 

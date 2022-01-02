@@ -269,8 +269,11 @@ type ReverseGeocoding {
 }
 
 type TripEstimate {
+  "Estimated price of trip in Naira"
   price: Float!
+  "Trip distance in Km"
   distance: Float!
+  "Trip duration in seconds"
   duration: Float!
 }
 
@@ -280,7 +283,12 @@ type Query {
 
   addressSuggestion(input: String!): AddressSuggestion!
 
-  tripEstimate(origin: String!, destination: String!): TripEstimate!
+  tripEstimate(
+    "Initial location"
+    origin: String!
+    "Final location"
+    destination: String!
+  ): TripEstimate!
 }
 `, BuiltIn: false},
 }

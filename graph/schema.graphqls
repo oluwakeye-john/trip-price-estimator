@@ -18,16 +18,22 @@ type ReverseGeocoding {
 }
 
 type TripEstimate {
+  "Estimated price of trip in Naira"
   price: Float!
+  "Trip distance in Km"
   distance: Float!
+  "Trip duration in seconds"
   duration: Float!
 }
 
 type Query {
   geocoding(input: String!): Geocoding!
   reverseGeocoding(latitude: Float!, longitude: Float!): ReverseGeocoding!
-
   addressSuggestion(input: String!): AddressSuggestion!
-
-  tripEstimate(origin: String!, destination: String!): TripEstimate!
+  tripEstimate(
+    "Trip initial location"
+    origin: String!
+    "Trip destination"
+    destination: String!
+  ): TripEstimate!
 }

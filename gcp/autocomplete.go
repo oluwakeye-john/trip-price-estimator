@@ -22,7 +22,9 @@ func AutoCompleteRequest(input string) (AutoCompleteResult, error) {
 	var err error
 	auto_complete_result := AutoCompleteResult{}
 
-	r, err := newMapRequest("/maps/api/place/autocomplete/json", params)
+	map_client := MapClient{}
+
+	r, err := map_client.Request("/maps/api/place/autocomplete/json", params)
 
 	if err != nil {
 		return auto_complete_result, err

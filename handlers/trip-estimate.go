@@ -3,8 +3,10 @@ package handlers
 import (
 	"errors"
 
+	"github.com/oluwakeye-john/trip-price-estimator/config"
 	"github.com/oluwakeye-john/trip-price-estimator/gcp"
 	"github.com/oluwakeye-john/trip-price-estimator/graph/model"
+	"github.com/oluwakeye-john/trip-price-estimator/services"
 )
 
 func TripEstimate(origin string, destination string) (*model.TripEstimate, error) {
@@ -22,9 +24,15 @@ func TripEstimate(origin string, destination string) (*model.TripEstimate, error
 
 	element := res.Rows[0].Elements[0]
 
-	trip_estimate.Price = 2000
-	trip_estimate.Distance = element.Distance.Value
-	trip_estimate.Duration = element.Duration.Value
+	trip := services.Trip{
+		Distance: element.Distance.Value,
+		Duration: element.Duration.Value,
+		Settings: config.AppSettings,
+	}
+
+	trip_estimate.Distance = trip.Distance
+	trip_estimate.Duration = trip.Duration
+	trip_estimate.Price = trip.ComputeTripFee()
 
 	return trip_estimate, nil
 }
