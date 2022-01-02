@@ -1,0 +1,33 @@
+scalar Time
+
+type Prediction {
+  description: String!
+}
+
+type AddressSuggestion {
+  predictions: [Prediction!]!
+}
+
+type Geocoding {
+  longitude: Float!
+  latitude: Float!
+}
+
+type ReverseGeocoding {
+  description: String!
+}
+
+type TripEstimate {
+  price: Float!
+  distance: Float!
+  duration: Float!
+}
+
+type Query {
+  geocoding(input: String!): Geocoding!
+  reverseGeocoding(latitude: Float!, longitude: Float!): ReverseGeocoding!
+
+  addressSuggestion(input: String!): AddressSuggestion!
+
+  tripEstimate(origin: String!, destination: String!): TripEstimate!
+}
