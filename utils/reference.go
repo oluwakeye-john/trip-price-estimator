@@ -6,5 +6,5 @@ import (
 )
 
 func GenerateReference() string {
-	return "trip_" + strconv.FormatInt(rand.Int63n(100000*100000), 10)
+	return "hyperdrive_trip_" + strconv.FormatInt(rand.Int63n(1000000*1000000), 10)
 }
