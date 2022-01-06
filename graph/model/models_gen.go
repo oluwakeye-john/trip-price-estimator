@@ -15,6 +15,11 @@ type Prediction struct {
 	Description string `json:"description"`
 }
 
+type RequestTrip struct {
+	Reference string  `json:"reference"`
+	Amount    float64 `json:"amount"`
+}
+
 type ReverseGeocoding struct {
 	Description string `json:"description"`
 }

@@ -26,6 +26,11 @@ type TripEstimate {
   duration: Float!
 }
 
+type RequestTrip {
+  reference: String!
+  amount: Float!
+}
+
 type Query {
   geocoding(input: String!): Geocoding!
   reverseGeocoding(latitude: Float!, longitude: Float!): ReverseGeocoding!
@@ -36,4 +41,12 @@ type Query {
     "Trip destination"
     destination: String!
   ): TripEstimate!
+}
+
+type Mutation {
+  requestTrip(
+    email: String!
+    origin: String!
+    destination: String!
+  ): RequestTrip!
 }

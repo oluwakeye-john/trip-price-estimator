@@ -35,6 +35,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -51,6 +52,10 @@ type ComplexityRoot struct {
 		Longitude func(childComplexity int) int
 	}
 
+	Mutation struct {
+		RequestTrip func(childComplexity int, email string, origin string, destination string) int
+	}
+
 	Prediction struct {
 		Description func(childComplexity int) int
 	}
@@ -60,6 +65,11 @@ type ComplexityRoot struct {
 		Geocoding         func(childComplexity int, input string) int
 		ReverseGeocoding  func(childComplexity int, latitude float64, longitude float64) int
 		TripEstimate      func(childComplexity int, origin string, destination string) int
+	}
+
+	RequestTrip struct {
+		Amount    func(childComplexity int) int
+		Reference func(childComplexity int) int
 	}
 
 	ReverseGeocoding struct {
@@ -73,6 +83,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type MutationResolver interface {
+	RequestTrip(ctx context.Context, email string, origin string, destination string) (*model.RequestTrip, error)
+}
 type QueryResolver interface {
 	Geocoding(ctx context.Context, input string) (*model.Geocoding, error)
 	ReverseGeocoding(ctx context.Context, latitude float64, longitude float64) (*model.ReverseGeocoding, error)
@@ -115,6 +128,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Geocoding.Longitude(childComplexity), true
+
+	case "Mutation.requestTrip":
+		if e.complexity.Mutation.RequestTrip == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_requestTrip_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RequestTrip(childComplexity, args["email"].(string), args["origin"].(string), args["destination"].(string)), true
 
 	case "Prediction.description":
 		if e.complexity.Prediction.Description == nil {
@@ -171,6 +196,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.TripEstimate(childComplexity, args["origin"].(string), args["destination"].(string)), true
 
+	case "RequestTrip.amount":
+		if e.complexity.RequestTrip.Amount == nil {
+			break
+		}
+
+		return e.complexity.RequestTrip.Amount(childComplexity), true
+
+	case "RequestTrip.reference":
+		if e.complexity.RequestTrip.Reference == nil {
+			break
+		}
+
+		return e.complexity.RequestTrip.Reference(childComplexity), true
+
 	case "ReverseGeocoding.description":
 		if e.complexity.ReverseGeocoding.Description == nil {
 			break
@@ -216,6 +255,20 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			}
 			first = false
 			data := ec._Query(ctx, rc.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 
@@ -277,18 +330,29 @@ type TripEstimate {
   duration: Float!
 }
 
+type RequestTrip {
+  reference: String!
+  amount: Float!
+}
+
 type Query {
   geocoding(input: String!): Geocoding!
   reverseGeocoding(latitude: Float!, longitude: Float!): ReverseGeocoding!
-
   addressSuggestion(input: String!): AddressSuggestion!
-
   tripEstimate(
-    "Initial location"
+    "Trip initial location"
     origin: String!
-    "Final location"
+    "Trip destination"
     destination: String!
   ): TripEstimate!
+}
+
+type Mutation {
+  requestTrip(
+    email: String!
+    origin: String!
+    destination: String!
+  ): RequestTrip!
 }
 `, BuiltIn: false},
 }
@@ -297,6 +361,39 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_requestTrip_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["email"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["email"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["origin"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("origin"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["origin"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["destination"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("destination"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["destination"] = arg2
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -532,6 +629,48 @@ func (ec *executionContext) _Geocoding_latitude(ctx context.Context, field graph
 	res := resTmp.(float64)
 	fc.Result = res
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_requestTrip(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_requestTrip_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RequestTrip(rctx, args["email"].(string), args["origin"].(string), args["destination"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RequestTrip)
+	fc.Result = res
+	return ec.marshalNRequestTrip2ᚖgithubᚗcomᚋoluwakeyeᚑjohnᚋtripᚑpriceᚑestimatorᚋgraphᚋmodelᚐRequestTrip(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Prediction_description(ctx context.Context, field graphql.CollectedField, obj *model.Prediction) (ret graphql.Marshaler) {
@@ -806,6 +945,76 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RequestTrip_reference(ctx context.Context, field graphql.CollectedField, obj *model.RequestTrip) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RequestTrip",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Reference, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RequestTrip_amount(ctx context.Context, field graphql.CollectedField, obj *model.RequestTrip) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RequestTrip",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Amount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ReverseGeocoding_description(ctx context.Context, field graphql.CollectedField, obj *model.ReverseGeocoding) (ret graphql.Marshaler) {
@@ -2137,6 +2346,37 @@ func (ec *executionContext) _Geocoding(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "requestTrip":
+			out.Values[i] = ec._Mutation_requestTrip(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var predictionImplementors = []string{"Prediction"}
 
 func (ec *executionContext) _Prediction(ctx context.Context, sel ast.SelectionSet, obj *model.Prediction) graphql.Marshaler {
@@ -2239,6 +2479,38 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var requestTripImplementors = []string{"RequestTrip"}
+
+func (ec *executionContext) _RequestTrip(ctx context.Context, sel ast.SelectionSet, obj *model.RequestTrip) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, requestTripImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RequestTrip")
+		case "reference":
+			out.Values[i] = ec._RequestTrip_reference(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._RequestTrip_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2674,6 +2946,20 @@ func (ec *executionContext) marshalNPrediction2ᚖgithubᚗcomᚋoluwakeyeᚑjoh
 		return graphql.Null
 	}
 	return ec._Prediction(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRequestTrip2githubᚗcomᚋoluwakeyeᚑjohnᚋtripᚑpriceᚑestimatorᚋgraphᚋmodelᚐRequestTrip(ctx context.Context, sel ast.SelectionSet, v model.RequestTrip) graphql.Marshaler {
+	return ec._RequestTrip(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRequestTrip2ᚖgithubᚗcomᚋoluwakeyeᚑjohnᚋtripᚑpriceᚑestimatorᚋgraphᚋmodelᚐRequestTrip(ctx context.Context, sel ast.SelectionSet, v *model.RequestTrip) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RequestTrip(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNReverseGeocoding2githubᚗcomᚋoluwakeyeᚑjohnᚋtripᚑpriceᚑestimatorᚋgraphᚋmodelᚐReverseGeocoding(ctx context.Context, sel ast.SelectionSet, v model.ReverseGeocoding) graphql.Marshaler {

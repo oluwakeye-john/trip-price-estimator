@@ -11,6 +11,10 @@ import (
 	"github.com/oluwakeye-john/trip-price-estimator/handlers"
 )
 
+func (r *mutationResolver) RequestTrip(ctx context.Context, email string, origin string, destination string) (*model.RequestTrip, error) {
+	return handlers.RequestRide(origin, destination, email)
+}
+
 func (r *queryResolver) Geocoding(ctx context.Context, input string) (*model.Geocoding, error) {
 	return handlers.Geocoding(input)
 }
@@ -27,7 +31,11 @@ func (r *queryResolver) TripEstimate(ctx context.Context, origin string, destina
 	return handlers.TripEstimate(origin, destination)
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
